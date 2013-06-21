@@ -121,6 +121,10 @@ case $cmd in
 	list)  list           ;;
 	help)  help $help_cmd ;;
 	*)
+		case $cmd in
+			redact|unredact) if supports_storage ; then declare -A secrets; fi ;;
+		esac
+
 		for param in ${params[*]}; do
 			case $cmd in
 				clone)         clone $param               ;;

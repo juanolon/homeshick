@@ -3,11 +3,6 @@ function supports_storage {
 	declare -A a 2>/dev/null;
 	[[ $? = 0 ]]
 }
-# whether declare supports the global flag
-function supports_global {
-	declare -Ag a 2>/dev/null;
-	[[ $? = 0 ]]
-}
 
 function load_secrets {
 	if ! supports_storage ; then
@@ -15,12 +10,6 @@ function load_secrets {
 	fi
 
 	secrets_file=${HOMESHICK_SECRETS_PATH:-"$HOME/.briefcase_secrets"}
-	if supports_global ; then
-		declare -Ag secrets
-	else
-		# Break out of function scope in bash prior to 4.2
-		$(declare -A secrets)
-	fi
 
 	if [[ -r $secrets_file ]]; then
 		while read line; do
@@ -46,7 +35,7 @@ function populate_placeholders {
 	local redacted=$1
 	local destination=$2
 
-	if support_storage ; then
+	if supports_storage ; then
 		while read line; do
 			if [[ $line =~ ^(.*)\#\ briefcase\(([a-zA-Z0-9_-]+)\)(.*)$ ]]; then
 				local start=${BASH_REMATCH[1]}
