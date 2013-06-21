@@ -9,7 +9,7 @@ function symlink {
 		ignore 'ignored' "$castle"
 		return $EX_SUCCESS
 	fi
-	for filepath in $(find $repo/home -mindepth 1); do
+	for filepath in $(find $repo/home -mindepth 1 ! -iname "*.redacted"); do
 		file=${filepath#$repo/home/}
 
 		if [[ -d $repo/home/$file && -d $HOME/$file ]]; then
@@ -53,6 +53,47 @@ function symlink {
 	return $EX_SUCCESS
 }
 
+function unredact {
+	[[ ! $1 ]] && help unredact
+	local castle=$1
+	castle_exists $castle
+	local repo="$repos/$castle"
+	if [[ ! -d $repo/home ]]; then
+		ignore 'ignored' "$castle"
+		return $EX_SUCCESS
+	fi
+
+	local store=supports_storage
+
+	if [[ store = 1 ]]; then
+		load_secrets
+	fi
+
+	for filepath in $(find $repo/home -mindepth 1 -type f -iname "*.redacted"); do
+		file=${filepath#$repo/home/}
+		unredacted=${file%.redacted}
+
+		if [[ -e $HOME/$unredacted ]]; then
+			if $SKIP; then
+				ignore 'exists' $file
+				continue
+			fi
+			if ! $FORCE; then
+				prompt_no 'conflict' "$unredacted exists" "overwrite?"
+				if [[ $? != 0 ]]; then
+					continue
+				fi
+			fi
+			rm -rf "$HOME/$unredacted"
+		fi
+
+		populate_placeholders "$repo/home/$file" "$HOME/$unredacted"
+
+		success
+	done
+	return $EX_SUCCESS
+}
+
 function track {
 	[[ ! $1 || ! $2 ]] && help track
 	local castle=$1
@@ -80,6 +121,56 @@ function track {
 	mkdir -p $(dirname $newfile)
 	mv -f "$filename" "$newfile"
 	ln -s "$newfile" "$filename"
+	(cd $repo; git add "$newfile")
+	success
+}
+
+function redact {
+	[[ ! $1 || ! $2 ]] && help redact
+	local castle=$1
+	local filename=$(readlink -f $2 2> /dev/null || realpath $2)
+	local redacted="$filename.redacted"
+	if [[ $filename != $HOME/* ]]; then
+		err $EX_ERR "The file $filename must be in your home directory."
+	fi
+	if [[ $redacted == $repos/* ]]; then
+		err $EX_ERR "The file $redacted is already being tracked."
+	fi
+
+	local repo="$repos/$castle"
+	local newfile="$repo/home/${redacted#$HOME/}"
+
+	# pending "symlink" "$newfile to $filename"
+	home_exists 'redact' $castle
+	if [[ ! -e $filename ]]; then
+		err $EX_ERR "The file $filename does not exist."
+	fi
+	if [[ -e $newfile && $FORCE = false ]]; then
+		err $EX_ERR "The file $filename already exists in the castle $castle."
+	fi
+	if [[ ! -f $filename ]]; then
+		err $EX_ERR "The file $filename must be a regular file."
+	fi
+
+	mkdir -p $(dirname $newfile)
+
+	echo '!! Edit the file below, replacing any sensitive information to turn this:
+!!
+!!   password: superSecretPassword
+!!
+!! Into:
+!!
+!!   password: # briefcase(password)
+!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' >> $newfile
+	cat $filename >> $newfile
+	"${EDITOR:-vim}" $newfile
+	sed -i -e '/^!!.*$/d' $newfile
+
+	if [[ supports_storage = 1 ]]; then
+		parse_secrets $filename $newfile
+	fi
+
 	(cd $repo; git add "$newfile")
 	success
 }

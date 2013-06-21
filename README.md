@@ -78,6 +78,27 @@ To track your `.bashrc` and `.zshrc` in your `dotfiles` castle
 run `homeshick track dotfiles .bashrc .zshrc`,
 the files are automatically added to the git index.
 
+### redact ###
+If you wish to track a file containing sensitive information, you can use redact
+to handle assist with sanitizing the file before storing it in your repo.
+run 
+
+`homeshick redact dotfiles .file-containing-passwords`
+
+The file will be copied to the dotfiles repo, and will be opened for editing.
+When prompted, replace sensitive information with `# briefcase(name-of-password)` ex:
+
+```diff
+- my_network_password="12345"
++ my_network_password="# briefcase(network-password)"
+```
+
+The file will be saved in your repository with the .redacted filename extension.
+
+### unredact ### 
+The `unredact` command generates dotfiles from your castles .redacted files into your home folder.
+If present, your `~/.briefcase_secrets` file will be used to populate secrets when generating the unredacted file.
+
 ### generate ###
 `generate` creates a new castle.
 All you need to do now is call `track` to fill it with your dotfiles.
@@ -163,3 +184,6 @@ The original goal of homeshick was to mimick the functionality of
 Since its inception however homeshick has deviated quite a bit from the ruby-version.
 All of the original commands are still available, but have been simplified and enhanced with interactive
 prompts like symlinking new files after a castle has been updated.
+
+# homeshick and briefcase #
+The redact and unredact are designed to mimic [Briefcase's](http://jim.github.io/briefcase/) redact and generate commands.

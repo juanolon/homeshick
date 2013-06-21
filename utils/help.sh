@@ -18,6 +18,8 @@ printf "homes${bldblu}h${txtdef}ick uses git in concert with symlinks to track y
   homeshick link [CASTLE..]           # Symlinks all dotfiles from a castle
   homeshick track CASTLE FILE..       # Add a file to a castle
   homeshick help [TASK]               # Show usage of a task
+  homeshick redact CASTLE FILE..      # Add a file to a castle and prompt for sanitization
+  homeshick unredact [CASTLE..]       # Generates dotfiles from redacted files in castle
 
  Aliases:
   symlink # Alias to link
@@ -76,6 +78,16 @@ function extended_help {
       printf "Adds a file to a castle.\n"
       printf "This moves the file into the castle and creates a symlink in its place.\n"
       printf "Usage:\n  homeshick track CASTLE FILE.."
+      ;;
+		redact)
+      printf "Adds a redacted file to a castle and opens for editing"
+      printf "Removed content will be added to a secrets file"
+      printf "Usage:\n  homeshick redact CASTLE FILE.."
+      ;;
+		unredact)
+      printf "Generates all redacted dotfiles from a castle\n"
+      printf "If available, redacted content will be pulled from the ~/secrets file"
+      printf "Usage:\n  homeshick unredact CASTLE"
       ;;
 		help)
       printf "Shows usage of a task\n"
