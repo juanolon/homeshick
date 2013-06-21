@@ -97,7 +97,7 @@ When prompted, replace sensitive information with `# briefcase(name-of-password)
 
 The file will be saved in your repository with the .redacted filename extension.
 
-### unredact ### 
+### unredact ###
 The `unredact` command generates dotfiles from your castles .redacted files into your home folder.
 If present, your `~/.briefcase_secrets` file will be used to populate secrets when generating the unredacted file.
 

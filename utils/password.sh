@@ -1,26 +1,34 @@
 # whether bash supports associative arrays
 function supports_storage {
 	declare -A a 2>/dev/null;
-	if [[ $? == 0 ]]; then
-		return 1
-	else
-		return 0
-	fi
+	[[ $? = 0 ]]
+}
+# whether declare supports the global flag
+function supports_global {
+	declare -Ag a 2>/dev/null;
+	[[ $? = 0 ]]
 }
 
 function load_secrets {
-	secrets_file=${HOMESHICK_SECRETS_PATH :-"$HOME/.briefcase_secrets"}
-	declare -A secrets
+	secrets_file=${HOMESHICK_SECRETS_PATH:-"$HOME/.briefcase_secrets"}
+	if supports_global ; then
+		declare -Ag secrets
+	else
+		# Break out of function scope in bash prior to 4.2
+		$(declare -A secrets)
+	fi
 
-	while read line; do
-		if [[ $line =~ ^([a-zA-Z0-9_-]+)=(.*)$ ]]; then
-			secrets[${BASH_REMATCH[1]}]=${BASH_REMATCH[2]}
-		fi
-	done < $secrets_file
+	if [[ -r $secrets_file ]]; then
+		while read line; do
+			if [[ $line =~ ^([a-zA-Z0-9_-]+)=(.*)$ ]]; then
+				secrets[${BASH_REMATCH[1]}]=${BASH_REMATCH[2]}
+			fi
+		done < $secrets_file
+	fi
 }
 
 function save_secrets {
-	secrets_file=${HOMESHICK_SECRETS_PATH :-"$HOME/.briefcase_secrets"}
+	secrets_file=${HOMESHICK_SECRETS_PATH:-"$HOME/.briefcase_secrets"}
 	for i in "${!secrets[@]}"; do
 		echo "$i=${secrets[$i]}"
 	done > $secrets_file
