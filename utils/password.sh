@@ -10,6 +10,10 @@ function supports_global {
 }
 
 function load_secrets {
+	if ! supports_storage ; then
+		return
+	fi
+
 	secrets_file=${HOMESHICK_SECRETS_PATH:-"$HOME/.briefcase_secrets"}
 	if supports_global ; then
 		declare -Ag secrets
@@ -42,7 +46,7 @@ function populate_placeholders {
 	local redacted=$1
 	local destination=$2
 
-	if [[ supports_storage = 1 ]]; then
+	if support_storage ; then
 		while read line; do
 			if [[ $line =~ ^(.*)\#\ briefcase\(([a-zA-Z0-9_-]+)\)(.*)$ ]]; then
 				local start=${BASH_REMATCH[1]}
@@ -61,6 +65,10 @@ function populate_placeholders {
 }
 
 function parse_secrets {
+	if ! supports_storage ; then
+		return
+	fi
+
 	load_secrets
 
 	exec 5< $1

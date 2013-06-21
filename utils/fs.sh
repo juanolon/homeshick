@@ -63,11 +63,7 @@ function unredact {
 		return $EX_SUCCESS
 	fi
 
-	local store=supports_storage
-
-	if [[ store = 1 ]]; then
-		load_secrets
-	fi
+	load_secrets
 
 	for filepath in $(find $repo/home -mindepth 1 -type f -iname "*.redacted"); do
 		file=${filepath#$repo/home/}
@@ -140,7 +136,7 @@ function redact {
 	local repo="$repos/$castle"
 	local newfile="$repo/home/${redacted#$HOME/}"
 
-	# pending "symlink" "$newfile to $filename"
+	pending "redacting" "$filename to $newfile"
 	home_exists 'redact' $castle
 	if [[ ! -e $filename ]]; then
 		err $EX_ERR "The file $filename does not exist."
@@ -167,9 +163,7 @@ function redact {
 	"${EDITOR:-vim}" $newfile
 	sed -i -e '/^!!.*$/d' $newfile
 
-	if [[ supports_storage = 1 ]]; then
-		parse_secrets $filename $newfile
-	fi
+	parse_secrets $filename $newfile
 
 	(cd $repo; git add "$newfile")
 	success
