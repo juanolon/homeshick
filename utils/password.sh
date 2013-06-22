@@ -49,7 +49,7 @@ function populate_placeholders {
 		done < $redacted > $destination
 	else
 		# replace all instances of briefcase in file
-		sed -i 's/# briefcase([a-zA-Z0-9_-]\+)//g' $redacted > $destination
+		sed 's/# briefcase([a-zA-Z0-9_-]\+)//g' $redacted > $destination
 	fi
 }
 
