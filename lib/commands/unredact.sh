@@ -1,38 +1,48 @@
 #!/usr/bin/env bash
 
-function unredact {
+homeshick=${HOMESHICK_DIR:-$HOME/.homesick/repos/homeshick}
+# shellcheck source=../lib/fs.sh
+source "$homeshick/lib/fs.sh"
+
+unredact() {
   [[ ! $1 ]] && help unredact
   local castle=$1
-  castle_exists $castle
+  castle_exists "$castle"
   local repo="$repos/$castle"
   if [[ ! -d $repo/home ]]; then
-    ignore 'ignored' "$castle"
-    return $EX_SUCCESS
+    if $VERBOSE; then
+      ignore 'ignored' "$castle"
+    fi
+    return "$EX_SUCCESS"
   fi
 
   load_secrets
 
-  for filepath in $(find $repo/home -mindepth 1 -type f -iname "*.redacted"); do
-    file=${filepath#$repo/home/}
-    unredacted=${file%.redacted}
+  # Loop through files in the repository using get_repo_files
+  while IFS= read -d $'\0' -r relpath <&3; do
+    local repopath="$repo/home/$relpath"
+    local unredacted=${relpath%.redacted}
+    local homepath="$HOME/$unredacted"
 
-    if [[ -e $HOME/$unredacted ]]; then
-      if $SKIP; then
-        ignore 'exists' $file
-        continue
-      fi
-      if ! $FORCE; then
-        prompt_no 'conflict' "$unredacted exists" "overwrite?"
-        if [[ $? != 0 ]]; then
+    # Only proceed if it's a redacted file
+    if [[ $relpath == *.redacted ]]; then
+      if [[ -e $homepath ]]; then
+        if $SKIP; then
+          ignore 'exists' "$unredacted"
           continue
         fi
+        if ! $FORCE; then
+          prompt_no 'conflict' "$unredacted exists" "overwrite?" || continue
+        fi
+        rm -rf "$homepath"
       fi
-      rm -rf "$HOME/$unredacted"
+
+      # Perform placeholder substitution
+      pending 'unredacting' "$relpath"
+      populate_placeholders "$repopath" "$homepath"
+
+      success
     fi
-
-    populate_placeholders "$repo/home/$file" "$HOME/$unredacted"
-
-    success
-  done
-  return $EX_SUCCESS
+  done 3< <(get_repo_files "$repo")
+  return "$EX_SUCCESS"
 }

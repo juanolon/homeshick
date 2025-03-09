@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-function redact {
+redact() {
   [[ ! $1 || ! $2 ]] && help redact
   local castle=$1
   local filename=$(readlink -f $2 2> /dev/null || realpath $2)
@@ -30,14 +30,14 @@ function redact {
   mkdir -p $(dirname $newfile)
 
   echo '!! Edit the file below, replacing any sensitive information to turn this:
-  !!
-  !!   password: superSecretPassword
-  !!
-  !! Into:
-  !!
-  !!   password: # briefcase(password)
-  !!
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' >> $newfile
+!!
+!!   password: superSecretPassword
+!!
+!! Into:
+!!
+!!   password: # briefcase(password)
+!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' >> $newfile
   cat $filename >> $newfile
   "${EDITOR:-vim}" $newfile
   sed -i -e '/^!!.*$/d' $newfile

@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+homeshick=${HOMESHICK_DIR:-$HOME/.homesick/repos/homeshick}
+# shellcheck source=../lib/fs.sh
+source "$homeshick/lib/fs.sh"
+
 symlink() {
   [[ ! $1 ]] && help symlink
   local castle=$1
@@ -76,54 +80,6 @@ symlink() {
 
     success
   # Fetch the repo files and redirect the output into file descriptor 3
-  done 3< <(get_repo_files "$repo")
+  done 3< <(get_repo_files "$repo" "\.redacted$")
   return "$EX_SUCCESS"
-}
-
-# Fetches all files and folders in a repository that are tracked by git
-# Works recursively on submodules as well
-# Disable SC2154, we cannot do it inline where $homeshick is used.
-# shellcheck disable=SC2154
-get_repo_files() {
-  # Resolve symbolic links
-  # e.g. on osx $TMPDIR is in /var/folders...
-  # which is actually /private/var/folders...
-  # We do this so that the root part of $toplevel can be replaced
-  # git resolves symbolic links before it outputs $toplevel
-  local root
-  root=$(cd "$1" && pwd -P)
-  (
-    local path
-    while IFS= read -d $'\0' -r path; do
-      # Remove quotes from ls-files
-      # (used when there are newlines in the path)
-      path=${path/#\"/}
-      path=${path/%\"/}
-      # Check if home/ is a submodule
-      [[ $path == 'home' ]] && continue
-      # Remove the home/ part
-      path=${path/#home\//}
-      # Skip files matching *.redacted
-      [[ $path == *.redacted ]] && continue
-      # Print the file path (NUL separated because \n can be used in filenames)
-      printf "%s\0" "$path"
-      # Get the path of all the parent directories
-      # up to the repo root.
-      while true; do
-        path=$(dirname "$path")
-        # If path is '.' we're done
-        [[ $path == '.' ]] && break
-        # Print the path
-        printf "%s\0" "$path"
-      done
-    # Enter the repo, list the repo root files in home
-    # and do the same for any submodules
-    done < <(cd "$root" &&
-             git ls-files -z 'home/' &&
-             git submodule --quiet foreach --recursive \
-             "$homeshick/lib/submodule_files.sh \"$root\" \"\$toplevel\" \"\$path\"")
-    # Unfortunately we have to use an external script for `git submodule foreach'
-    # because versions prior to ~ 2.0 use `eval' to execute the argument.
-    # This somehow messes quite badly with string substitution.
-  ) | sort -zu # sort the results and make the list unique (-u), NUL is the line separator (-z)
 }
