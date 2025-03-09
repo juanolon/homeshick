@@ -13,6 +13,8 @@ source "$homeshick/lib/git.sh"
 source "$homeshick/lib/log.sh"
 # shellcheck source=../lib/prompt.sh
 source "$homeshick/lib/prompt.sh"
+# shellcheck source=../lib/password.sh
+source "$homeshick/lib/password.sh"
 
 # lots of global variables in here, so just disable SC2034 for the entire file
 # shellcheck disable=SC2034
@@ -69,7 +71,7 @@ done
 [[ $# -gt 0 ]] || cmd="help"
 
 # Get the subcommand
-valid_commands=(cd clone generate list ls check updates refresh pull symlink link track help)
+valid_commands=(cd clone generate list ls check updates refresh pull symlink link track redact unredact help)
 if [[ ! $cmd ]]; then
   # We actually want literal matching of the rhs here, $1 shouldn't be a regexp
   # shellcheck disable=SC2076
@@ -116,13 +118,13 @@ while [[ $# -gt 0 ]]; do
   fi
 
   case $cmd in
-    cd | clone | generate | check | updates | pull | symlink | link)
+    cd | clone | generate | check | updates | pull | symlink | link | unredact)
       params+=("$1")
       shift; continue ;;
     refresh)
       [[ ! $threshhold ]] && threshhold=$(($1*86400)) || params+=("$1")
       shift; continue ;;
-    track)
+    track | redact)
       [[ ! $castle ]] && castle=$1 || params+=("$1")
       shift; continue ;;
     list | ls) err "$EX_USAGE" "The '$1' command does not take any arguments" ;;
@@ -136,12 +138,12 @@ done
 # If no additional arguments are given, run the subcommand for every castle
 if [[ ${#params[@]} -eq 0 ]]; then
   case $cmd in
-    check | updates | refresh | pull | symlink | link)
+    check | updates | refresh | pull | symlink | link | unredact)
       while IFS= read -d $'\n' -r name ; do
         params+=("$name")
       done < <(list_castle_names) ;;
     # These commands require parameters, show the help message instead
-    cd | clone | generate | track) help_cmd=$cmd; cmd="help"; exit_status=$EX_USAGE ;;
+    cd | clone | generate | track | redact) help_cmd=$cmd; cmd="help"; exit_status=$EX_USAGE ;;
   esac
 fi
 
@@ -172,6 +174,9 @@ case $cmd in
   help)  help $help_cmd ;;
   *)
     pull_completed=()
+    case $cmd in
+        redact|unredact) if supports_storage ; then declare -A secrets; fi ;;
+    esac
     for param in "${params[@]}"; do
       case $cmd in
         clone)
@@ -196,6 +201,10 @@ case $cmd in
           symlink "$param" ;;
         track)
           track "$castle" "$param" ;;
+        redact)
+          redact "$castle" "$param" ;;
+        unredact)
+          unredact "$param" ;;
       esac
       result=$?
       if [[ $result == "$EX_USAGE" ]]; then
