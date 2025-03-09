@@ -103,6 +103,8 @@ get_repo_files() {
       [[ $path == 'home' ]] && continue
       # Remove the home/ part
       path=${path/#home\//}
+      # Skip files matching *.redacted
+      [[ $path == *.redacted ]] && continue
       # Print the file path (NUL separated because \n can be used in filenames)
       printf "%s\0" "$path"
       # Get the path of all the parent directories

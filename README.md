@@ -1,7 +1,7 @@
 homeshick ![Lint & test](https://github.com/andsens/homeshick/workflows/Lint%20&%20test/badge.svg)
 =========
-In Unix, configuration files are king.  
-Tailoring tools to suit your needs through configuration can be empowering.  
+In Unix, configuration files are king.
+Tailoring tools to suit your needs through configuration can be empowering.
 An immense number of hours is spent on getting these adjustments just right,
 but once you leave the confines of your own computer, these local optimizations are left behind.
 
